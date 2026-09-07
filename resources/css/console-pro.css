@@ -1,0 +1,640 @@
+/* Pelican Server Console Pro Styles */
+
+/* 1. Quick Commands Toolbar */
+#pelican-quick-commands-slot {
+    width: 100%;
+}
+
+#pelican-quick-commands-bar,
+#pelican-qc-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-top: none;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    margin-bottom: 12px;
+}
+
+.pelican-qc-buttons {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.pelican-qc-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: #94a3b8;
+    background: rgba(30, 41, 59, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.pelican-qc-btn:hover {
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.15);
+    border-color: #38bdf8;
+    transform: translateY(-1px);
+}
+
+.pelican-qc-btn:active {
+    transform: translateY(0);
+}
+
+/* 2. Right Side: Pause Toggle & Live Indicator */
+.pelican-qc-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Dedicated Console Freeze Button */
+.pelican-pause-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 11px;
+    font-weight: 600;
+    font-size: 11.5px;
+    color: #cbd5e1;
+    background: rgba(30, 41, 59, 0.85);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+
+.pelican-pause-btn:hover {
+    color: #fbbf24;
+    background: rgba(245, 158, 11, 0.15);
+    border-color: #f59e0b;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.25);
+    transform: translateY(-1px);
+}
+
+.pelican-pause-btn.is-paused {
+    color: #ffffff !important;
+    background: rgba(239, 68, 68, 0.85) !important;
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.5) !important;
+    animation: pulse-pause 1.8s infinite;
+}
+
+.pelican-pause-btn.is-paused:hover {
+    background: #dc2626 !important;
+    border-color: #f87171 !important;
+}
+
+.pelican-pause-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    background: rgba(245, 158, 11, 0.18);
+    border: 1px solid #f59e0b;
+    border-radius: 5px;
+    color: #fbbf24;
+    font-size: 11.5px;
+    font-weight: 600;
+    animation: pulse-pause 1.8s infinite;
+}
+
+@keyframes pulse-pause {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.pelican-qc-pause-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: #94a3b8;
+    transition: color 0.15s ease;
+}
+
+.pelican-qc-pause-toggle:hover {
+    color: #e2e8f0;
+}
+
+.pelican-qc-pause-toggle input {
+    cursor: pointer;
+    accent-color: #f59e0b;
+    width: 14px;
+    height: 14px;
+}
+
+.pause-cb-text {
+    font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+/* 3. Copy Toast */
+#pelican-copy-toast {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    z-index: 999999;
+    padding: 8px 16px;
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(56, 189, 248, 0.5);
+    border-radius: 8px;
+    color: #38bdf8;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(12px);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#pelican-copy-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* 4. Command Autocomplete Suggestions Popup (Pelican Panel Theme) */
+.pelican-ac-popup {
+    position: absolute;
+    display: none;
+    z-index: 99999;
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: none;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55), 0 4px 10px rgba(0, 0, 0, 0.35);
+    max-height: 250px;
+    overflow-y: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.35;
+    box-sizing: border-box;
+    padding: 3px 0;
+}
+
+.pelican-ac-popup.show {
+    display: block;
+}
+
+.pelican-ac-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 12px;
+    color: #cbd5e1;
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+    transition: background 0.1s ease, color 0.1s ease;
+}
+
+.pelican-ac-item:hover,
+.pelican-ac-item.selected {
+    background: #0284c7;
+    color: #ffffff;
+}
+
+.pelican-ac-item.is-typed-echo {
+    background: rgba(15, 23, 42, 0.95);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 2px;
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+.pelican-ac-item.is-typed-echo.selected {
+    background: #0284c7;
+    color: #ffffff;
+}
+
+.pelican-ac-item .pelican-ac-cmd {
+    font-weight: 500;
+    letter-spacing: 0.01em;
+}
+
+.pelican-ac-item.selected .pelican-ac-cmd {
+    color: #ffffff;
+}
+
+.pelican-ac-item .pelican-ac-badge {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: rgba(148, 163, 184, 0.15);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    margin-left: 12px;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: 0.02em;
+}
+
+.pelican-ac-item.selected .pelican-ac-badge,
+.pelican-ac-item:hover .pelican-ac-badge {
+    background: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.pelican-ac-item .pelican-ac-badge.badge-history {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.25);
+}
+
+.pelican-ac-item.selected .pelican-ac-badge.badge-history,
+.pelican-ac-item:hover .pelican-ac-badge.badge-history {
+    background: rgba(254, 240, 138, 0.25);
+    color: #fef08a;
+    border-color: rgba(254, 240, 138, 0.4);
+}
+
+/* Custom scrollbar for autocomplete popup */
+.pelican-ac-popup::-webkit-scrollbar {
+    width: 6px;
+}
+.pelican-ac-popup::-webkit-scrollbar-track {
+    background: #0f172a;
+}
+.pelican-ac-popup::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 3px;
+}
+.pelican-ac-popup::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+}
+
+/* 5. Colored Console Enhancements */
+#terminal .xterm-rows {
+    letter-spacing: 0.02em;
+}
+
+/* 6. Selection & Steam Links */
+#terminal,
+#terminal .xterm,
+#terminal .xterm-screen,
+#terminal .xterm-rows {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+}
+
+#terminal ::selection,
+#terminal .xterm ::selection,
+#terminal .xterm-rows ::selection {
+    background: rgba(56, 189, 248, 0.45) !important;
+    color: #ffffff !important;
+}
+
+/* Subtle Steam Links in Terminal */
+#terminal a,
+#terminal .xterm-underline-hover,
+#terminal .xterm-link-layer {
+    text-decoration: none !important;
+    cursor: pointer !important;
+}
+
+#terminal .xterm-rows a,
+#terminal a {
+    color: #38bdf8 !important;
+    border-bottom: 1px dotted rgba(56, 189, 248, 0.4) !important;
+    transition: all 0.15s ease !important;
+}
+
+#terminal .xterm-rows a:hover,
+#terminal a:hover {
+    color: #7dd3fc !important;
+    border-bottom: 1px solid #38bdf8 !important;
+    background: rgba(56, 189, 248, 0.15) !important;
+    border-radius: 2px !important;
+}
+
+/* 7. Quick Command Add Button & Visual Click Pulse */
+.pelican-qc-btn.active-pulse {
+    background: rgba(56, 189, 248, 0.4) !important;
+    border-color: #38bdf8 !important;
+    color: #ffffff !important;
+    transform: scale(0.96);
+}
+
+.pelican-qc-btn-add {
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    padding: 2px 8px !important;
+    color: #38bdf8 !important;
+    border-color: rgba(56, 189, 248, 0.3) !important;
+    background: rgba(56, 189, 248, 0.08) !important;
+}
+
+.pelican-qc-btn-add:hover {
+    background: rgba(56, 189, 248, 0.25) !important;
+    border-color: #38bdf8 !important;
+    color: #ffffff !important;
+}
+
+.pelican-qc-btn-custom {
+    border-color: rgba(168, 85, 247, 0.3) !important;
+    color: #c084fc !important;
+}
+.pelican-qc-btn-custom:hover {
+    background: rgba(168, 85, 247, 0.18) !important;
+    border-color: #c084fc !important;
+    color: #ffffff !important;
+}
+
+/* 8. Steam ID Hover Tooltip */
+#pelican-steam-tooltip {
+    position: fixed;
+    display: none;
+    z-index: 999999;
+    padding: 6px 12px;
+    background: #0f172a;
+    border: 1px solid #38bdf8;
+    border-radius: 6px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+    color: #f8fafc;
+    font-size: 12px;
+    font-family: ui-sans-serif, system-ui, sans-serif;
+    pointer-events: none;
+    white-space: nowrap;
+}
+
+#pelican-steam-tooltip .tooltip-sid {
+    color: #38bdf8;
+    font-family: ui-monospace, monospace;
+    font-weight: 600;
+}
+
+/* 9. Custom Commands Modal Window */
+.pelican-qc-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    z-index: 999999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.pelican-qc-modal-backdrop.show {
+    display: flex;
+}
+
+.pelican-qc-modal {
+    background: #0f172a;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+}
+
+.pelican-qc-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pelican-qc-modal-header h4 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: #f8fafc;
+}
+
+.pelican-qc-modal-close {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 22px;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.pelican-qc-modal-close:hover {
+    color: #ffffff;
+}
+
+.pelican-qc-modal-body {
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.pelican-qc-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.pelican-qc-field label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #cbd5e1;
+}
+
+.pelican-qc-field input {
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 13px;
+    color: #f8fafc;
+    font-family: ui-monospace, monospace;
+    outline: none;
+}
+
+.pelican-qc-field input:focus {
+    border-color: #38bdf8;
+    box-shadow: 0 0 0 1px #38bdf8;
+}
+
+.pelican-qc-field small {
+    font-size: 11px;
+    color: #64748b;
+}
+
+.pelican-qc-custom-list {
+    margin-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding-top: 10px;
+    max-height: 140px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.pelican-qc-custom-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px;
+    background: rgba(30, 41, 59, 0.4);
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.pelican-qc-custom-item .cmd-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
+}
+
+.pelican-qc-custom-item .cmd-name {
+    color: #38bdf8;
+    font-family: monospace;
+}
+
+.pelican-qc-custom-item .cmd-alias {
+    color: #a855f7;
+    font-weight: 500;
+}
+
+.pelican-qc-custom-item .cmd-del {
+    background: none;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 2px 4px;
+}
+.pelican-qc-custom-item .cmd-del:hover {
+    color: #f87171;
+}
+
+.pelican-qc-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 12px 18px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(30, 41, 59, 0.2);
+}
+
+.pelican-qc-btn-save {
+    background: #0284c7;
+    color: #ffffff;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+}
+.pelican-qc-btn-save:hover {
+    background: #0369a1;
+}
+
+.pelican-qc-btn-cancel {
+    background: transparent;
+    color: #94a3b8;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    cursor: pointer;
+}
+.pelican-qc-btn-cancel:hover {
+    color: #ffffff;
+}
+
+/* 10. Robust Interactive Scrollbar and Slider */
+.scrollbar.vertical {
+    width: 14px !important;
+    background: rgba(15, 23, 42, 0.4) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.06) !important;
+    cursor: pointer !important;
+    z-index: 50 !important;
+    pointer-events: auto !important;
+}
+
+.scrollbar.vertical .slider {
+    width: 12px !important;
+    background: #475569 !important;
+    border-radius: 6px !important;
+    cursor: grab !important;
+    z-index: 51 !important;
+    pointer-events: auto !important;
+    transition: background 0.12s ease, box-shadow 0.12s ease !important;
+}
+
+.scrollbar.vertical:hover .slider,
+.scrollbar.vertical .slider:hover,
+.scrollbar.vertical .slider.active {
+    background: #38bdf8 !important;
+    cursor: grabbing !important;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.7) !important;
+}
+
+/* 11. Dedicated Terminal Custom Scrollbar */
+#terminal {
+    position: relative !important;
+}
+
+#pelican-custom-scroll-track {
+    position: absolute !important;
+    right: 3px !important;
+    top: 4px !important;
+    bottom: 4px !important;
+    width: 10px !important;
+    background: rgba(15, 23, 42, 0.5) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 6px !important;
+    z-index: 100 !important;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    transition: width 0.15s ease, background 0.15s ease !important;
+}
+
+#pelican-custom-scroll-track:hover {
+    width: 13px !important;
+    background: rgba(15, 23, 42, 0.8) !important;
+}
+
+#pelican-custom-scroll-slider {
+    position: absolute !important;
+    left: 1px !important;
+    right: 1px !important;
+    background: #475569 !important;
+    border-radius: 4px !important;
+    cursor: grab !important;
+    pointer-events: auto !important;
+    transition: background 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+#pelican-custom-scroll-track:hover #pelican-custom-scroll-slider,
+#pelican-custom-scroll-slider:hover,
+#pelican-custom-scroll-slider.active {
+    background: #38bdf8 !important;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.8) !important;
+    cursor: grabbing !important;
+}

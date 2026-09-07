@@ -1,0 +1,19 @@
+{
+    "id": "pelican-server-console-pro",
+    "name": "Pelican Server Console Pro",
+    "author": "MrPanica",
+    "version": "1.0.2",
+    "description": "Unified console suite optimized for Source Engine servers (TF2, CS:S, CS:GO, GMod) on Pelican Panel: ANSI colors, 1-click SteamID links, quick commands, auto-copy on select, buffer pause on Ctrl, autocomplete, and live terminal reattachment.",
+    "category": "plugin",
+    "url": "https://github.com/MrPanica/pelican-server-console-pro",
+    "namespace": "Artur\\PelicanServerConsolePro",
+    "class": "PelicanServerConsoleProPlugin",
+    "panels": [
+        "admin",
+        "server"
+    ],
+    "meta": {
+        "status": "enabled",
+        "status_message": null
+    }
+}
