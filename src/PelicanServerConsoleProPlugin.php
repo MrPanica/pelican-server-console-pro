@@ -18,7 +18,7 @@ class PelicanServerConsoleProPlugin implements Plugin
 
     public function register(Panel $panel): void
     {
-        $version = '1.5.1';
+        $version = '1.5.2';
 
         if ($panel->getId() === 'server') {
             $panel->renderHook(
@@ -77,25 +77,6 @@ class PelicanServerConsoleProPlugin implements Plugin
                         '            }' . "\n" .
                         '          } catch (err) {}' . "\n" .
                         '        });' . "\n" .
-                        '      }' . "\n" .
-                        '      send(data) {' . "\n" .
-                        '        if (typeof data === "string" && data.indexOf(\'"send logs"\') !== -1) {' . "\n" .
-                        '          try {' . "\n" .
-                        '            var parsed = JSON.parse(data);' . "\n" .
-                        '            if (parsed && parsed.event === "send logs") {' . "\n" .
-                        '              if (this._hasRequestedLogs) {' . "\n" .
-                        '                return;' . "\n" .
-                        '              }' . "\n" .
-                        '              var term = window._pelicanTerminal;' . "\n" .
-                        '              if (term && term.buffer && term.buffer.active && term.buffer.active.baseY > 10) {' . "\n" .
-                        '                this._hasRequestedLogs = true;' . "\n" .
-                        '                return;' . "\n" .
-                        '              }' . "\n" .
-                        '              this._hasRequestedLogs = true;' . "\n" .
-                        '            }' . "\n" .
-                        '          } catch (e) {}' . "\n" .
-                        '        }' . "\n" .
-                        '        return super.send(data);' . "\n" .
                         '      }' . "\n" .
                         '    }' . "\n" .
                         '    window.WebSocket = PelicanWebSocket;' . "\n" .

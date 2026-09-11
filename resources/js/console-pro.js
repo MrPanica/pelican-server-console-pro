@@ -736,6 +736,7 @@
 
         let scrollRafId = null;
         function scheduleScrollUpdate(t) {
+            if (document.hidden) return;
             if (scrollRafId) return;
             scrollRafId = requestAnimationFrame(() => {
                 scrollRafId = null;
@@ -753,40 +754,27 @@
             });
         }
 
-        origTerminalWriteln = term.writeln;
-        term.writeln = function (...args) {
-            ensureTerminalAttached(this);
-            if (args.length > 0 && typeof args[0] === 'string') {
-                args[0] = colorizeLine(args[0]);
-            }
+        if (!term._writelnHooked) {
+            term._writelnHooked = true;
+            const origWriteln = term.writeln;
+            term.writeln = function (...args) {
+                ensureTerminalAttached(this);
+                if (args.length > 0 && typeof args[0] === 'string') {
+                    args[0] = colorizeLine(args[0]);
+                }
 
-            if (isConsolePaused) {
-                consoleBuffer.push({ instance: this, args: args });
-                if (consoleBuffer.length > 5000) consoleBuffer.shift();
-                updatePauseIndicator();
-                return;
-            }
+                if (isConsolePaused) {
+                    consoleBuffer.push({ instance: this, args: args });
+                    if (consoleBuffer.length > 5000) consoleBuffer.shift();
+                    updatePauseIndicator();
+                    return;
+                }
 
-            // Hook callback for when Xterm finishes adding chunk to buffer
-            const lastArg = args[args.length - 1];
-            const hasUserCb = typeof lastArg === 'function';
-            const userCb = hasUserCb ? lastArg : null;
-
-            const onDone = () => {
+                const res = origWriteln.apply(this, args);
                 scheduleScrollUpdate(this);
-                if (userCb) userCb();
+                return res;
             };
-
-            if (hasUserCb) {
-                args[args.length - 1] = onDone;
-            } else {
-                args.push(onDone);
-            }
-
-            const res = origTerminalWriteln.apply(this, args);
-            scheduleScrollUpdate(this);
-            return res;
-        };
+        }
 
         if (typeof term.onSelectionChange === 'function' && !term._selectionChangeHooked) {
             term._selectionChangeHooked = true;
@@ -836,6 +824,35 @@
             }
         }
     }
+
+    // Instant real-time snap and Chart.js recovery on tab switch
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            const term = window._pelicanTerminal || (document.getElementById('terminal')?._xterm);
+            if (term) {
+                if (!isUserScrolledUp && !isConsolePaused) {
+                    try { term.scrollToBottom(); } catch (e) {}
+                }
+                syncSliderFromBuffer(term);
+                const curRs = term._core ? term._core._renderService : null;
+                if (curRs && typeof curRs.refreshRows === 'function') {
+                    curRs._isPaused = false;
+                    curRs.refreshRows(0, (curRs._rowCount || term.rows || 24) - 1);
+                }
+            }
+            try {
+                if (window.Chart && window.Chart.instances) {
+                    Object.values(window.Chart.instances).forEach(function (chart) {
+                        if (chart && typeof chart.resize === 'function') {
+                            chart.resize();
+                            chart.update('none');
+                        }
+                    });
+                }
+                window.dispatchEvent(new Event('resize'));
+            } catch (e) {}
+        }
+    });
 
     // --- 8. AUTO-COPY ON TEXT SELECTION ---
     let toastTimeout = null;
@@ -1639,25 +1656,6 @@
                             }
                         } catch (err) {}
                     });
-                }
-                send(data) {
-                    if (typeof data === 'string' && data.indexOf('"send logs"') !== -1) {
-                        try {
-                            const parsed = JSON.parse(data);
-                            if (parsed && parsed.event === 'send logs') {
-                                if (this._hasRequestedLogs) {
-                                    return;
-                                }
-                                const term = window._pelicanTerminal;
-                                if (term && term.buffer && term.buffer.active && term.buffer.active.baseY > 10) {
-                                    this._hasRequestedLogs = true;
-                                    return;
-                                }
-                                this._hasRequestedLogs = true;
-                            }
-                        } catch (e) {}
-                    }
-                    return super.send(data);
                 }
             }
             PelicanWebSocket._pelicanProIntercepted = true;
