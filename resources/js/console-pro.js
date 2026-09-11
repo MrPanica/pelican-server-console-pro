@@ -8,7 +8,7 @@
  * - Auto-Copy on Text Selection with Visual Toast
  * - Pause Engine (Ctrl key / Checkbox with lossless buffering)
  * - Autocomplete Dropdown for Source Engine Commands
- * Version 1.5.0
+ * Version 1.5.1
  */
 (function () {
     const config = window.PelicanConsoleProConfig || {
@@ -586,10 +586,29 @@
             });
 
             document.addEventListener('visibilitychange', () => {
-                if (document.hidden && isCtrlHeld) {
-                    isCtrlHeld = false;
-                    if (!isManualPaused) {
-                        setConsolePaused(false);
+                if (document.hidden) {
+                    if (isCtrlHeld) {
+                        isCtrlHeld = false;
+                        if (!isManualPaused) {
+                            setConsolePaused(false);
+                        }
+                    }
+                } else {
+                    // Tab returned from background: snap immediately to current bottom
+                    const term = window._pelicanTerminal || (document.getElementById('terminal')?._xterm);
+                    if (term) {
+                        const rs = term._core ? term._core._renderService : null;
+                        if (rs) {
+                            rs._isPaused = false;
+                        }
+                        if (!isUserScrolledUp && !isConsolePaused) {
+                            try { term.scrollToBottom(); } catch (e) {}
+                        }
+                        syncSliderFromBuffer(term);
+                        const curRs = term._core ? term._core._renderService : null;
+                        if (curRs && typeof curRs.refreshRows === 'function') {
+                            try { curRs.refreshRows(0, (curRs._rowCount || term.rows || 24) - 1); } catch (e) {}
+                        }
                     }
                 }
             });
@@ -672,6 +691,10 @@
         if (typeof term.onScroll === 'function' && !term._scrollHooked) {
             term._scrollHooked = true;
             term.onScroll(() => {
+                if (term.buffer && term.buffer.active) {
+                    const b = term.buffer.active;
+                    isUserScrolledUp = b.viewportY < b.baseY - 2;
+                }
                 syncSliderFromBuffer(term);
             });
         }
@@ -711,6 +734,25 @@
             });
         }
 
+        let scrollRafId = null;
+        function scheduleScrollUpdate(t) {
+            if (scrollRafId) return;
+            scrollRafId = requestAnimationFrame(() => {
+                scrollRafId = null;
+                const activeTerm = t || term || window._pelicanTerminal;
+                if (!activeTerm) return;
+                if (!isUserScrolledUp && !isConsolePaused) {
+                    try { activeTerm.scrollToBottom(); } catch (e) {}
+                }
+                syncSliderFromBuffer(activeTerm);
+                const curRs = activeTerm._core ? activeTerm._core._renderService : null;
+                if (curRs && typeof curRs.refreshRows === 'function') {
+                    curRs._isPaused = false;
+                    curRs.refreshRows(0, (curRs._rowCount || activeTerm.rows || 24) - 1);
+                }
+            });
+        }
+
         origTerminalWriteln = term.writeln;
         term.writeln = function (...args) {
             ensureTerminalAttached(this);
@@ -725,25 +767,13 @@
                 return;
             }
 
-            const b = this.buffer ? this.buffer.active : null;
-            // Buffer is at bottom if user is within 2 lines of the end
-            const wasAtBottom = !b || (b.viewportY >= b.baseY - 2);
-
             // Hook callback for when Xterm finishes adding chunk to buffer
             const lastArg = args[args.length - 1];
             const hasUserCb = typeof lastArg === 'function';
             const userCb = hasUserCb ? lastArg : null;
 
             const onDone = () => {
-                if (wasAtBottom) {
-                    try { this.scrollToBottom(); } catch (e) {}
-                }
-                syncSliderFromBuffer(this);
-                const curRs = this._core ? this._core._renderService : null;
-                if (curRs && typeof curRs.refreshRows === 'function') {
-                    curRs._isPaused = false;
-                    curRs.refreshRows(0, (curRs._rowCount || this.rows || 24) - 1);
-                }
+                scheduleScrollUpdate(this);
                 if (userCb) userCb();
             };
 
@@ -754,12 +784,7 @@
             }
 
             const res = origTerminalWriteln.apply(this, args);
-
-            if (wasAtBottom) {
-                try { this.scrollToBottom(); } catch (e) {}
-            }
-            syncSliderFromBuffer(this);
-
+            scheduleScrollUpdate(this);
             return res;
         };
 
@@ -1599,7 +1624,7 @@
     // --- 11. WEBSOCKET TELEMETRY BRIDGE ---
     try {
         const origWS = window.WebSocket;
-        if (origWS && !origWS._proHooked && !origWS._pelicanProIntercepted) {
+        if (origWS && !origWS._pelicanProIntercepted) {
             class PelicanWebSocket extends origWS {
                 constructor(...args) {
                     super(...args);
@@ -1614,6 +1639,25 @@
                             }
                         } catch (err) {}
                     });
+                }
+                send(data) {
+                    if (typeof data === 'string' && data.indexOf('"send logs"') !== -1) {
+                        try {
+                            const parsed = JSON.parse(data);
+                            if (parsed && parsed.event === 'send logs') {
+                                if (this._hasRequestedLogs) {
+                                    return;
+                                }
+                                const term = window._pelicanTerminal;
+                                if (term && term.buffer && term.buffer.active && term.buffer.active.baseY > 10) {
+                                    this._hasRequestedLogs = true;
+                                    return;
+                                }
+                                this._hasRequestedLogs = true;
+                            }
+                        } catch (e) {}
+                    }
+                    return super.send(data);
                 }
             }
             PelicanWebSocket._pelicanProIntercepted = true;
