@@ -6,6 +6,25 @@ A high-performance, feature-packed console enhancement suite for **Pelican Panel
 
 ---
 
+## 📸 Screenshots / Скриншоты
+
+### Live Colorized Console & Quick Commands / Потоковая цветная консоль и быстрые команды
+![Server Console Pro — Live Stream & Controls](screenshots/01_server_console_pro_stream.png)
+*Real-time ANSI colored logs, 1-click Steam profiles, quick commands bar, pause mode, and auto-copy.*  
+*Интеллектуальная ANSI-подсветка логов, кликабельные SteamID, панель быстрых команд, пауза и автокопирование.*
+
+> [!NOTE]
+> **Dashboard Layout Notice / Оформление страницы сервера:**  
+> The overall 2-column server layout, compact top status bar, map badge, and stacked metrics charts visible in this screenshot are provided by the [**Pelican Server Layout Pro**](https://github.com/MrPanica/pelican-server-layout-pro) plugin.  
+> *Двухколоночный макет страницы сервера, компактный статус-бар в шапке, бейдж текущей карты и боковые графики метрик обеспечиваются плагином [**Pelican Server Layout Pro**](https://github.com/MrPanica/pelican-server-layout-pro).*
+
+### Quick Commands & Presets Modal / Окно управления быстрыми командами
+![Server Console Pro — Commands Modal](screenshots/02_server_console_pro_commands_modal.png)
+*Interactive custom command manager with client-side localStorage presets and instant WebSocket dispatch.*  
+*Модальное окно управления персональными пресетами команд с сохранением в браузере и мгновенной отправкой.*
+
+---
+
 ## ✨ Features (English)
 
 - **🎨 ANSI Syntax & Semantic Colorizer**:
