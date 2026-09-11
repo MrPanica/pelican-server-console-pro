@@ -16,6 +16,7 @@ class PelicanServerConsoleProProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->loadTranslationsFrom(__DIR__ . '/../../lang', 'console-pro');
         $this->loadViewsFrom(__DIR__ . '/../../resources/views', 'console-pro');
 
         $sourceCss = __DIR__ . '/../../resources/css/console-pro.css';

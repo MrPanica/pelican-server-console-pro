@@ -29,17 +29,17 @@ class ConsoleProSettingsPage extends Page implements HasForms
 
     public static function getNavigationGroup(): ?string
     {
-        return 'Настройки';
+        return trans('console-pro::messages.nav_group');
     }
 
     public static function getNavigationLabel(): string
     {
-        return 'Console Pro';
+        return trans('console-pro::messages.nav_label');
     }
 
     public function getTitle(): string
     {
-        return 'Настройки Pelican Console Pro';
+        return trans('console-pro::messages.title');
     }
 
     public function mount(): void
@@ -70,48 +70,48 @@ class ConsoleProSettingsPage extends Page implements HasForms
     {
         return $schema
             ->components([
-                Section::make('Основные модули консоли')
-                    ->description('Включение и отключение функций консоли серверов')
+                Section::make(trans('console-pro::messages.section_main'))
+                    ->description(trans('console-pro::messages.section_main_desc'))
                     ->schema([
                         Toggle::make('colored_console')
-                            ->label('Цветная консоль (подсветка логов)')
-                            ->helperText('Выделяет цветом важные системные сообщения, ошибки, предупреждения, IP-адреса и чат.')
+                            ->label(trans('console-pro::messages.field_colored_console'))
+                            ->helperText(trans('console-pro::messages.field_colored_console_help'))
                             ->default(true),
                         Toggle::make('copy_on_select')
-                            ->label('Копирование при выделении текста (ЛКМ)')
-                            ->helperText('Автоматически копирует выделенный в терминале фрагмент в буфер обмена при отпускании левой кнопки мыши.')
+                            ->label(trans('console-pro::messages.field_copy_on_select'))
+                            ->helperText(trans('console-pro::messages.field_copy_on_select_help'))
                             ->default(true),
                         Toggle::make('quick_commands')
-                            ->label('Панель быстрых команд под строкой ввода')
-                            ->helperText('Отображает кнопки для часто используемых серверных команд.')
+                            ->label(trans('console-pro::messages.field_quick_commands'))
+                            ->helperText(trans('console-pro::messages.field_quick_commands_help'))
                             ->default(true),
                         Toggle::make('autocomplete')
-                            ->label('Автодополнение и подсказки команд')
-                            ->helperText('Показывает всплывающее меню вариантов при наборе команды в поле ввода.')
+                            ->label(trans('console-pro::messages.field_autocomplete'))
+                            ->helperText(trans('console-pro::messages.field_autocomplete_help'))
                             ->default(true),
                     ])->columns(2),
 
-                Section::make('Пауза автообновления консоли')
-                    ->description('Позволяет заморозить прокрутку и вывод новых строк без потери данных')
+                Section::make(trans('console-pro::messages.section_pause'))
+                    ->description(trans('console-pro::messages.section_pause_desc'))
                     ->schema([
                         Toggle::make('pause_on_ctrl')
-                            ->label('Пауза консоли при удержании клавиши CTRL')
-                            ->helperText('Пока клавиша Ctrl удерживается, новые строки буферизуются. При отпускании накопленные строки выводятся в консоль.')
+                            ->label(trans('console-pro::messages.field_pause_on_ctrl'))
+                            ->helperText(trans('console-pro::messages.field_pause_on_ctrl_help'))
                             ->default(true),
                         Toggle::make('pause_checkbox')
-                            ->label('Кнопка/чекбокс ручной паузы в интерфейсе')
-                            ->helperText('Добавляет переключатель «⏸ Не обновлять консоль» рядом со строкой ввода.')
+                            ->label(trans('console-pro::messages.field_pause_checkbox'))
+                            ->helperText(trans('console-pro::messages.field_pause_checkbox_help'))
                             ->default(true),
                     ])->columns(2),
 
-                Section::make('Специфические настройки')
+                Section::make(trans('console-pro::messages.section_specific'))
                     ->schema([
                         TagsInput::make('commands')
-                            ->label('Список быстрых команд')
-                            ->helperText('Команды, отображаемые на кнопках под строкой ввода консоли.')
+                            ->label(trans('console-pro::messages.field_commands'))
+                            ->helperText(trans('console-pro::messages.field_commands_help'))
                             ->default(['status', 'sm_who', 'sm_players', 'ping', 'changelevel', 'mp_restartgame 1', 'tv_status', 'maps *', 'rcon']),
                         TextInput::make('toast_duration')
-                            ->label('Длительность уведомления о копировании (мс)')
+                            ->label(trans('console-pro::messages.field_toast_duration'))
                             ->numeric()
                             ->default(1500),
                     ]),
@@ -128,7 +128,7 @@ class ConsoleProSettingsPage extends Page implements HasForms
         }
 
         Notification::make()
-            ->title('Настройки Console Pro сохранены!')
+            ->title(trans('console-pro::messages.saved_notification'))
             ->success()
             ->send();
     }

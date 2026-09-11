@@ -18,17 +18,19 @@ class PelicanServerConsoleProPlugin implements Plugin
 
     public function register(Panel $panel): void
     {
-        $version = '1.5.2';
+        $version = '1.5.3';
 
         if ($panel->getId() === 'server') {
             $panel->renderHook(
                 PanelsRenderHook::HEAD_END,
                 function () use ($version) {
                     $config = $this->loadConfig();
+                    $i18n = trans('console-pro::messages');
                     return new HtmlString(
                         '<link rel="stylesheet" href="/plugins/pelican-server-console-pro/css/console-pro.css?v=' . $version . '&t=' . time() . '">' . "\n" .
                         '<script>' . "\n" .
                         'window.PelicanConsoleProConfig = ' . json_encode($config) . ';' . "\n" .
+                        'window.PelicanConsoleProI18n = ' . json_encode($i18n, JSON_UNESCAPED_UNICODE) . ';' . "\n" .
                         '(function(){' . "\n" .
                         '  window.filamentChartJsPlugins = window.filamentChartJsPlugins || [];' . "\n" .
                         '  window.filamentChartJsPlugins.push({' . "\n" .

@@ -30,6 +30,11 @@
         toast_duration: 1500
     };
 
+    const i18n = window.PelicanConsoleProI18n || {};
+    function __(key, fallback) {
+        return (i18n && typeof i18n[key] === 'string') ? i18n[key] : fallback;
+    }
+
     function getServerIdentifier() {
         const parts = window.location.pathname.split('/');
         const idx = parts.indexOf('server');
@@ -241,7 +246,7 @@
                 tooltip.id = 'pelican-steam-tooltip';
                 document.body.appendChild(tooltip);
             }
-            tooltip.innerHTML = `🎮 Steam: <span class="tooltip-sid">${match.steamId}</span> (клик для профиля)`;
+            tooltip.innerHTML = `🎮 Steam: <span class="tooltip-sid">${match.steamId}</span> (${__('steam_click_profile', 'клик для профиля')})`;
             tooltip.style.left = `${Math.min(e.clientX + 14, window.innerWidth - 280)}px`;
             tooltip.style.top = `${e.clientY + 14}px`;
             tooltip.style.display = 'block';
@@ -271,7 +276,7 @@
             e.preventDefault();
             e.stopPropagation();
             window.open(match.url, '_blank', 'noopener,noreferrer');
-            showCopyToast(match.steamId.length, `🎮 Открыт профиль Steam: ${match.steamId}`);
+            showCopyToast(match.steamId.length, `🎮 ${__('steam_profile_opened', 'Открыт профиль Steam: ')}${match.steamId}`);
         }
     }, true);
 
@@ -467,12 +472,12 @@
         if (btn) {
             if (isConsolePaused) {
                 btn.classList.add('is-paused');
-                btn.innerHTML = `<span class="pause-icon">▶</span> <span class="pause-text">Возобновить</span>`;
-                btn.setAttribute('title', 'Возобновить обновление консоли и сбросить накопленный буфер');
+                btn.innerHTML = `<span class="pause-icon">▶</span> <span class="pause-text">${__('resume_buffer', 'Возобновить')}</span>`;
+                btn.setAttribute('title', __('resume_buffer_title', 'Возобновить обновление консоли и сбросить накопленный буфер'));
             } else {
                 btn.classList.remove('is-paused');
-                btn.innerHTML = `<span class="pause-icon">⏸</span> <span class="pause-text">Заморозить (Ctrl)</span>`;
-                btn.setAttribute('title', 'Заморозить поток консоли (также можно зажать клавишу Ctrl)');
+                btn.innerHTML = `<span class="pause-icon">⏸</span> <span class="pause-text">${__('freeze_ctrl', 'Заморозить (Ctrl)')}</span>`;
+                btn.setAttribute('title', __('freeze_ctrl_title', 'Заморозить поток консоли (также можно зажать клавишу Ctrl)'));
             }
         }
 
@@ -481,8 +486,8 @@
         if (isConsolePaused) {
             badge.style.display = 'inline-flex';
             const count = consoleBuffer.length;
-            const hint = isCtrlHeld ? 'зажат Ctrl' : 'заморозка включена';
-            badge.innerHTML = `⏸ Заморожено: ${count} в буфере (${hint})`;
+            const hint = isCtrlHeld ? __('ctrl_held', 'зажат Ctrl') : __('freeze_active', 'заморозка включена');
+            badge.innerHTML = `⏸ ${__('paused_prefix', 'Заморожено:')} ${count} ${__('in_buffer', 'в буфере')} (${hint})`;
         } else {
             badge.style.display = 'none';
         }
@@ -724,7 +729,7 @@
                                 },
                                 activate: function () {
                                     window.open(url, '_blank', 'noopener,noreferrer');
-                                    showCopyToast(sid.length, `🎮 Открыт профиль Steam: ${sid}`);
+                                    showCopyToast(sid.length, `🎮 ${__('steam_profile_opened', 'Открыт профиль Steam: ')}${sid}`);
                                 }
                             });
                         }
@@ -864,7 +869,7 @@
             document.body.appendChild(toast);
         }
 
-        toast.textContent = customText || `📋 Скопировано в буфер (${len} симв.)`;
+        toast.textContent = customText || `📋 ${__('copied_chars', 'Скопировано в буфер')} (${len} ${__('chars', 'симв.')})`;
         toast.classList.add('show');
 
         clearTimeout(toastTimeout);
@@ -1061,27 +1066,27 @@
             modalBackdrop.innerHTML = `
                 <div class="pelican-qc-modal">
                     <div class="pelican-qc-modal-header">
-                        <h4>Настройка быстрых команд</h4>
+                        <h4>${__('qc_modal_title', 'Настройка быстрых команд')}</h4>
                         <button type="button" class="pelican-qc-modal-close" id="pelican-qc-close-btn">&times;</button>
                     </div>
                     <div class="pelican-qc-modal-body">
                         <div class="pelican-qc-field">
-                            <label for="pelican-qc-input-cmd">Команда сервера (консольная):</label>
-                            <input type="text" id="pelican-qc-input-cmd" placeholder="Например: changelevel de_mirage" autocomplete="off">
-                            <small>Команда, которая будет мгновенно отправлена в консоль сервера.</small>
+                            <label for="pelican-qc-input-cmd">${__('qc_label_cmd', 'Команда сервера (консольная):')}</label>
+                            <input type="text" id="pelican-qc-input-cmd" placeholder="${__('qc_placeholder_cmd', 'Например: changelevel de_mirage')}" autocomplete="off">
+                            <small>${__('qc_cmd_hint', 'Команда, которая будет мгновенно отправлена в консоль сервера.')}</small>
                         </div>
                         <div class="pelican-qc-field">
-                            <label for="pelican-qc-input-alias">Псевдоним (отображаемое имя кнопки, опционально):</label>
-                            <input type="text" id="pelican-qc-input-alias" placeholder="Например: Mirage" autocomplete="off">
-                            <small>Если псевдоним задан, он будет показан на кнопке, иначе — сама команда.</small>
+                            <label for="pelican-qc-input-alias">${__('qc_label_alias', 'Псевдоним (отображаемое имя кнопки, опционально):')}</label>
+                            <input type="text" id="pelican-qc-input-alias" placeholder="${__('qc_placeholder_alias', 'Например: Mirage')}" autocomplete="off">
+                            <small>${__('qc_alias_hint', 'Если псевдоним задан, он будет показан на кнопке, иначе — сама команда.')}</small>
                         </div>
                         <div style="display: flex; justify-content: flex-end;">
-                            <button type="button" class="pelican-qc-btn-save" id="pelican-qc-add-btn">+ Добавить в список</button>
+                            <button type="button" class="pelican-qc-btn-save" id="pelican-qc-add-btn">${__('qc_btn_add', '+ Добавить в список')}</button>
                         </div>
                         <div class="pelican-qc-custom-list" id="pelican-qc-custom-items"></div>
                     </div>
                     <div class="pelican-qc-modal-footer">
-                        <button type="button" class="pelican-qc-btn-cancel" id="pelican-qc-done-btn">Готово</button>
+                        <button type="button" class="pelican-qc-btn-cancel" id="pelican-qc-done-btn">${__('qc_btn_done', 'Готово')}</button>
                     </div>
                 </div>
             `;
@@ -1220,7 +1225,7 @@
 
         const list = getCustomCommands();
         if (list.length === 0) {
-            ctn.innerHTML = '<div style="color: #64748b; font-size: 11.5px; text-align: center; padding: 6px;">Пользовательских команд пока нет.</div>';
+            ctn.innerHTML = `<div style="color: #64748b; font-size: 11.5px; text-align: center; padding: 6px;">${__('qc_empty_custom', 'Пользовательских команд пока нет.')}</div>`;
             return;
         }
 
@@ -1239,7 +1244,7 @@
             delBtn.type = 'button';
             delBtn.className = 'cmd-del';
             delBtn.innerHTML = '&times;';
-            delBtn.title = 'Удалить команду';
+            delBtn.title = __('qc_delete_title', 'Удалить команду');
             delBtn.addEventListener('click', () => {
                 const current = getCustomCommands();
                 current.splice(index, 1);
@@ -1267,7 +1272,7 @@
             btn.className = 'pelican-qc-btn';
             btn.setAttribute('data-command', cmd);
             btn.textContent = cmd;
-            btn.title = `Отправить: ${cmd}`;
+            btn.title = `${__('send_cmd_prefix', 'Отправить: ')}${cmd}`;
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -1283,7 +1288,7 @@
             btn.className = 'pelican-qc-btn pelican-qc-btn-custom';
             btn.setAttribute('data-command', item.command);
             btn.textContent = item.alias || item.command;
-            btn.title = `Отправить: ${item.command}`;
+            btn.title = `${__('send_cmd_prefix', 'Отправить: ')}${item.command}`;
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -1295,7 +1300,7 @@
         const addBtn = document.createElement('button');
         addBtn.type = 'button';
         addBtn.className = 'pelican-qc-btn pelican-qc-btn-add';
-        addBtn.title = 'Добавить пользовательскую команду';
+        addBtn.title = __('qc_add_custom_btn_title', 'Добавить пользовательскую команду');
         addBtn.innerHTML = '+';
         addBtn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -1347,8 +1352,8 @@
             pauseBtn.type = 'button';
             pauseBtn.id = 'pelican-pause-btn';
             pauseBtn.className = 'pelican-qc-btn pelican-pause-btn';
-            pauseBtn.innerHTML = `<span class="pause-icon">⏸</span> <span class="pause-text">Заморозить (Ctrl)</span>`;
-            pauseBtn.title = 'Заморозить поток консоли (также можно зажать клавишу Ctrl)';
+            pauseBtn.innerHTML = `<span class="pause-icon">⏸</span> <span class="pause-text">${__('freeze_ctrl', 'Заморозить (Ctrl)')}</span>`;
+            pauseBtn.title = __('freeze_ctrl_title', 'Заморозить поток консоли (также можно зажать клавишу Ctrl)');
             pauseBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 toggleManualPause();
@@ -1359,10 +1364,10 @@
         if (config.pause_checkbox) {
             const toggleLabel = document.createElement('label');
             toggleLabel.className = 'pelican-qc-pause-toggle';
-            toggleLabel.title = 'Приостановить прокрутку консоли (буферизация без потерь)';
+            toggleLabel.title = __('pause_toggle_title', 'Приостановить прокрутку консоли (буферизация без потерь)');
             toggleLabel.innerHTML = `
                 <input type="checkbox" id="pelican-pause-cb">
-                <span class="pause-cb-text">Пауза</span>
+                <span class="pause-cb-text">${__('pause_label', 'Пауза')}</span>
             `;
             const cb = toggleLabel.querySelector('input');
             if (cb) {
@@ -1467,9 +1472,9 @@
 
             let badgeHtml = '';
             if (item.isTypedEcho) {
-                badgeHtml = '<span class="pelican-ac-badge" style="opacity:0.75;">ввод</span>';
+                badgeHtml = `<span class="pelican-ac-badge" style="opacity:0.75;">${__('badge_input', 'ввод')}</span>`;
             } else if (item.isHistory) {
-                badgeHtml = '<span class="pelican-ac-badge badge-history">история</span>';
+                badgeHtml = `<span class="pelican-ac-badge badge-history">${__('badge_history', 'история')}</span>`;
             }
 
             div.innerHTML = `<span class="pelican-ac-cmd">${item.command}</span>${badgeHtml}`;
