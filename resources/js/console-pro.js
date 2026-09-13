@@ -1189,6 +1189,37 @@
             }
             return;
         }
+
+        const btn = e.target.closest('.pelican-qc-btn');
+        if (btn) {
+            if (btn.classList.contains('pelican-qc-btn-add')) {
+                e.preventDefault();
+                e.stopPropagation();
+                openCustomCommandsModal();
+                return;
+            }
+
+            if (btn.classList.contains('pelican-pause-btn') || btn.closest('.pelican-qc-pause-toggle')) {
+                return;
+            }
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (btn._sending) return;
+            btn._sending = true;
+            btn.classList.add('active-pulse');
+            setTimeout(() => {
+                btn.classList.remove('active-pulse');
+                btn._sending = false;
+            }, 400);
+
+            const cmd = btn.getAttribute('data-command') || btn.textContent.trim();
+            if (cmd) {
+                sendCommand(cmd, true);
+            }
+            return;
+        }
     });
 
     function renderCustomListInModal() {
@@ -1282,30 +1313,6 @@
         const btnCtn = document.createElement('div');
         btnCtn.id = 'pelican-qc-buttons-ctn';
         btnCtn.className = 'pelican-qc-buttons';
-        btnCtn.addEventListener('click', (e) => {
-            const btn = e.target.closest('.pelican-qc-btn');
-            if (!btn) return;
-            e.preventDefault();
-            e.stopPropagation();
-
-            if (btn.classList.contains('pelican-qc-btn-add')) {
-                openCustomCommandsModal();
-                return;
-            }
-
-            if (btn._sending) return;
-            btn._sending = true;
-            btn.classList.add('active-pulse');
-            setTimeout(() => {
-                btn.classList.remove('active-pulse');
-                btn._sending = false;
-            }, 400);
-
-            const cmd = btn.getAttribute('data-command') || btn.textContent.trim();
-            if (cmd) {
-                sendCommand(cmd, true);
-            }
-        });
         bar.appendChild(btnCtn);
 
         const rightArea = document.createElement('div');
