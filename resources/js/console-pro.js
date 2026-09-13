@@ -1189,33 +1189,6 @@
             }
             return;
         }
-
-        const btn = e.target.closest('.pelican-qc-btn');
-        if (!btn) return;
-
-        if (btn.classList.contains('pelican-qc-btn-add')) {
-            e.preventDefault();
-            e.stopPropagation();
-            openCustomCommandsModal();
-            return;
-        }
-
-        e.preventDefault();
-        e.stopPropagation();
-
-        if (btn._sending) return;
-        btn._sending = true;
-        btn.classList.add('active-pulse');
-        setTimeout(() => {
-            btn.classList.remove('active-pulse');
-            btn._sending = false;
-        }, 400);
-
-        const cmd = btn.getAttribute('data-command') || btn.textContent.trim();
-        if (!cmd) return;
-
-        // Instant send immediately upon click!
-        sendCommand(cmd, true);
     });
 
     function renderCustomListInModal() {
@@ -1273,11 +1246,6 @@
             btn.setAttribute('data-command', cmd);
             btn.textContent = cmd;
             btn.title = `${__('send_cmd_prefix', 'Отправить: ')}${cmd}`;
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                sendCommand(cmd);
-            });
             container.appendChild(btn);
         });
 
@@ -1289,11 +1257,6 @@
             btn.setAttribute('data-command', item.command);
             btn.textContent = item.alias || item.command;
             btn.title = `${__('send_cmd_prefix', 'Отправить: ')}${item.command}`;
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                sendCommand(item.command);
-            });
             container.appendChild(btn);
         });
 
@@ -1302,11 +1265,6 @@
         addBtn.className = 'pelican-qc-btn pelican-qc-btn-add';
         addBtn.title = __('qc_add_custom_btn_title', 'Добавить пользовательскую команду');
         addBtn.innerHTML = '+';
-        addBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            openCustomCommandsModal();
-        });
         container.appendChild(addBtn);
     }
 
@@ -1327,13 +1285,25 @@
         btnCtn.addEventListener('click', (e) => {
             const btn = e.target.closest('.pelican-qc-btn');
             if (!btn) return;
+            e.preventDefault();
+            e.stopPropagation();
+
             if (btn.classList.contains('pelican-qc-btn-add')) {
                 openCustomCommandsModal();
                 return;
             }
-            const cmd = btn.getAttribute('data-command');
+
+            if (btn._sending) return;
+            btn._sending = true;
+            btn.classList.add('active-pulse');
+            setTimeout(() => {
+                btn.classList.remove('active-pulse');
+                btn._sending = false;
+            }, 400);
+
+            const cmd = btn.getAttribute('data-command') || btn.textContent.trim();
             if (cmd) {
-                sendCommand(cmd);
+                sendCommand(cmd, true);
             }
         });
         bar.appendChild(btnCtn);
