@@ -18,7 +18,7 @@ class PelicanServerConsoleProPlugin implements Plugin
 
     public function register(Panel $panel): void
     {
-        $version = '1.5.4';
+        $version = '1.5.5';
 
         if ($panel->getId() === 'server') {
             $panel->renderHook(
@@ -92,7 +92,8 @@ class PelicanServerConsoleProPlugin implements Plugin
                         '      var origOpen = val.Terminal.prototype.open;' . "\n" .
                         '      val.Terminal.prototype.open = function(el) {' . "\n" .
                         '        window._pelicanTerminal = this;' . "\n" .
-                        '        if (el) el._xterm = this;' . "\n" .
+                        '        window.__pelican_active_terminal = this;' . "\n" .
+                        '        if (el) { el._xterm = this; el.__xterm_instance = this; }' . "\n" .
                         '        var rs = this._core ? this._core._renderService : null;' . "\n" .
                         '        if (rs) { rs._isPaused = false; }' . "\n" .
                         '        if (window.PelicanConsoleProInitTerminal) {' . "\n" .

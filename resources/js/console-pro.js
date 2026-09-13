@@ -618,6 +618,21 @@
                 }
             });
         }
+
+        if (!window._pelicanCtrlCHookAttached) {
+            window._pelicanCtrlCHookAttached = true;
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
+                    const term = getActiveTerminal();
+                    if (term && typeof term.getSelection === 'function') {
+                        const sel = term.getSelection();
+                        if (sel && sel.trim().length > 0) {
+                            copyToClipboard(sel);
+                        }
+                    }
+                }
+            }, { capture: true });
+        }
     }
 
     // --- 7. TERMINAL WRITELN & HOOKS ---
@@ -781,12 +796,7 @@
             };
         }
 
-        if (typeof term.onSelectionChange === 'function' && !term._selectionChangeHooked) {
-            term._selectionChangeHooked = true;
-            term.onSelectionChange(() => {
-                setTimeout(handleTerminalAutoCopy, 80);
-            });
-        }
+        // onSelectionChange removed to prevent premature/duplicate copy on drag
 
         setTimeout(() => {
             try { term.scrollToBottom(); } catch (e) {}
@@ -798,6 +808,21 @@
     window.PelicanConsoleProInitTerminal = function (term) {
         patchTerminalInstance(term);
     };
+
+    function getActiveTerminal() {
+        if (window._pelicanTerminal && typeof window._pelicanTerminal.getSelection === 'function') {
+            return window._pelicanTerminal;
+        }
+        if (window.__pelican_active_terminal && typeof window.__pelican_active_terminal.getSelection === 'function') {
+            return window.__pelican_active_terminal;
+        }
+        const termEl = document.getElementById('terminal') || document.querySelector('.xterm');
+        if (termEl) {
+            if (termEl._xterm && typeof termEl._xterm.getSelection === 'function') return termEl._xterm;
+            if (termEl.__xterm_instance && typeof termEl.__xterm_instance.getSelection === 'function') return termEl.__xterm_instance;
+        }
+        return null;
+    }
 
     function hookGlobalXterm() {
         if (window.Xterm) {
@@ -814,19 +839,19 @@
             const origOpen = OrigTermProto.open;
             OrigTermProto.open = function (el) {
                 window._pelicanTerminal = this;
-                if (el) el._xterm = this;
+                window.__pelican_active_terminal = this;
+                if (el) {
+                    el._xterm = this;
+                    el.__xterm_instance = this;
+                }
                 patchTerminalInstance(this);
                 return origOpen.apply(this, arguments);
             };
         }
 
-        if (window._pelicanTerminal) {
-            patchTerminalInstance(window._pelicanTerminal);
-        } else {
-            const termEl = document.getElementById('terminal');
-            if (termEl && termEl._xterm) {
-                patchTerminalInstance(termEl._xterm);
-            }
+        const term = getActiveTerminal();
+        if (term) {
+            patchTerminalInstance(term);
         }
     }
 
@@ -882,36 +907,44 @@
         try {
             const ta = document.createElement('textarea');
             ta.value = text;
+            ta.setAttribute('readonly', '');
             ta.style.position = 'fixed';
             ta.style.left = '-9999px';
             ta.style.top = '-9999px';
             ta.style.opacity = '0';
             document.body.appendChild(ta);
-            ta.focus();
+            ta.focus({ preventScroll: true });
             ta.select();
+            ta.setSelectionRange(0, text.length);
             const res = document.execCommand('copy');
             document.body.removeChild(ta);
-            if (res) {
-                showCopyToast(text.length);
-            }
-        } catch (e) {}
-    }
-
-    function copyToClipboard(text) {
-        if (!text) return;
-        showCopyToast(text.length);
-        if (navigator.clipboard && window.isSecureContext) {
-            navigator.clipboard.writeText(text).catch(() => {
-                fallbackCopy(text);
-            });
-        } else {
-            fallbackCopy(text);
+            return res;
+        } catch (e) {
+            return false;
         }
     }
 
-    function handleTerminalAutoCopy() {
+    function copyToClipboard(text, customText) {
+        if (!text || text.trim().length === 0) return;
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(() => {
+                showCopyToast(text.length, customText);
+            }).catch(() => {
+                if (fallbackCopy(text)) {
+                    showCopyToast(text.length, customText);
+                }
+            });
+        } else {
+            if (fallbackCopy(text)) {
+                showCopyToast(text.length, customText);
+            }
+        }
+    }
+
+    function handleTerminalAutoCopy(clientX, clientY) {
         let sel = '';
-        const term = window._pelicanTerminal;
+        const term = getActiveTerminal();
         if (term && typeof term.getSelection === 'function') {
             sel = term.getSelection();
         }
@@ -919,16 +952,14 @@
         if (!sel || !sel.trim()) {
             const domSel = window.getSelection ? window.getSelection().toString() : '';
             if (domSel && domSel.trim()) {
-                const termEl = document.getElementById('terminal');
+                const termEl = document.getElementById('terminal') || document.querySelector('.xterm');
                 if (termEl && window.getSelection().anchorNode && termEl.contains(window.getSelection().anchorNode)) {
                     sel = domSel;
                 }
             }
         }
 
-        sel = sel ? sel.trim() : '';
-        if (sel.length > 0 && sel !== window._pelicanLastCopiedText) {
-            window._pelicanLastCopiedText = sel;
+        if (sel && sel.trim().length > 0) {
             copyToClipboard(sel);
         }
     }
@@ -937,9 +968,20 @@
         if (!config.copy_on_select || window._pelicanCopyOnSelectInit) return;
         window._pelicanCopyOnSelectInit = true;
 
-        document.addEventListener('mouseup', () => {
-            setTimeout(handleTerminalAutoCopy, 50);
-        });
+        document.addEventListener('mouseup', (e) => {
+            if (e.button !== 0) return;
+
+            const termEl = document.getElementById('terminal') || document.querySelector('.xterm');
+            const isOverTerm = termEl && termEl.contains(e.target);
+            const term = getActiveTerminal();
+            const termHasSel = term && typeof term.hasSelection === 'function' && term.hasSelection();
+
+            if (!isOverTerm && !termHasSel) return;
+
+            setTimeout(() => {
+                handleTerminalAutoCopy(e.clientX, e.clientY);
+            }, 15);
+        }, true);
     }
 
     // --- 9. QUICK COMMANDS: INSERTION & INSTANT EXECUTION ---
