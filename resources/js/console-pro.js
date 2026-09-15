@@ -8,7 +8,7 @@
  * - Auto-Copy on Text Selection with Visual Toast
  * - Pause Engine (Ctrl key / Checkbox with lossless buffering)
  * - Autocomplete Dropdown for Source Engine Commands
- * Version 1.5.1
+ * Version 1.5.6
  */
 (function () {
     const config = window.PelicanConsoleProConfig || {
@@ -202,17 +202,60 @@
     }
 
     function isEventOverTerminal(e) {
-        if (e.target && typeof e.target.closest === 'function') {
-            const found = e.target.closest('#terminal, .xterm, .xterm-screen, .xterm-viewport, .xterm-scrollable-element');
-            if (found) return true;
-        }
-        const termEl = document.getElementById('terminal');
-        if (termEl) {
-            const rect = termEl.getBoundingClientRect();
-            if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+        if (!e) return false;
+
+        const target = e.target;
+        if (target && typeof target.closest === 'function') {
+            // Dropdown menus, modal dialogs, select boxes, inputs, buttons, header overlays
+            if (target.closest(
+                '.push-server-dropdown-menu, ' +
+                '.push-dropdown-scrollable, ' +
+                '.push-modal-backdrop, ' +
+                '.push-modal-window, ' +
+                '.pelican-qc-modal, ' +
+                '.pelican-ac-popup, ' +
+                '.fi-dropdown, ' +
+                '.fi-modal, ' +
+                '[role="dialog"], ' +
+                '[role="menu"], ' +
+                '.fi-topbar, ' +
+                '.pelican-unified-server-header, ' +
+                'select, textarea, input, button'
+            )) {
+                return false;
+            }
+
+            if (target.closest('#terminal, .xterm, .xterm-screen, .xterm-viewport, .xterm-scrollable-element')) {
                 return true;
             }
         }
+
+        if (typeof document.elementFromPoint === 'function' && typeof e.clientX === 'number' && typeof e.clientY === 'number') {
+            const topEl = document.elementFromPoint(e.clientX, e.clientY);
+            if (topEl) {
+                if (topEl.closest(
+                    '.push-server-dropdown-menu, ' +
+                    '.push-dropdown-scrollable, ' +
+                    '.push-modal-backdrop, ' +
+                    '.push-modal-window, ' +
+                    '.pelican-qc-modal, ' +
+                    '.pelican-ac-popup, ' +
+                    '.fi-dropdown, ' +
+                    '.fi-modal, ' +
+                    '[role="dialog"], ' +
+                    '[role="menu"], ' +
+                    '.fi-topbar, ' +
+                    '.pelican-unified-server-header, ' +
+                    'select, textarea, input, button'
+                )) {
+                    return false;
+                }
+                if (topEl.closest('#terminal, .xterm')) {
+                    return true;
+                }
+            }
+        }
+
         return false;
     }
 
@@ -635,6 +678,59 @@
         }
     }
 
+    // --- 6.1 INITIAL LOGS BACKLOG BUFFERING & SILENCING ---
+    let isInitialBacklog = false;
+    let backlogEndTimer = null;
+    let backlogSafetyTimer = null;
+
+    function startInitialBacklog() {
+        isInitialBacklog = true;
+        const termEl = document.getElementById('terminal');
+        if (termEl) {
+            termEl.classList.add('pelican-terminal-loading');
+        }
+
+        clearTimeout(backlogEndTimer);
+        clearTimeout(backlogSafetyTimer);
+
+        backlogSafetyTimer = setTimeout(finishInitialBacklog, 1200);
+    }
+
+    function bumpBacklogTimer() {
+        if (!isInitialBacklog) return;
+        clearTimeout(backlogEndTimer);
+        backlogEndTimer = setTimeout(finishInitialBacklog, 80);
+    }
+
+    function finishInitialBacklog() {
+        if (!isInitialBacklog) return;
+        isInitialBacklog = false;
+        clearTimeout(backlogEndTimer);
+        clearTimeout(backlogSafetyTimer);
+
+        const term = window._pelicanTerminal || (document.getElementById('terminal')?._xterm);
+        if (term) {
+            try { term.scrollToBottom(); } catch (e) {}
+            isUserScrolledUp = false;
+            syncSliderFromBuffer(term);
+            const curRs = term._core ? term._core._renderService : null;
+            if (curRs && typeof curRs.refreshRows === 'function') {
+                curRs._isPaused = false;
+                try {
+                    curRs.refreshRows(0, (curRs._rowCount || term.rows || 24) - 1);
+                } catch (e) {}
+            }
+        }
+
+        const termEl = document.getElementById('terminal');
+        if (termEl) {
+            termEl.classList.remove('pelican-terminal-loading');
+        }
+    }
+
+    window._pelicanStartInitialBacklog = startInitialBacklog;
+    window._pelicanFinishInitialBacklog = finishInitialBacklog;
+
     // --- 7. TERMINAL WRITELN & HOOKS ---
     function ensureTerminalAttached(targetTerm) {
         const liveTerm = document.getElementById('terminal');
@@ -756,10 +852,11 @@
 
         let scrollRafId = null;
         function scheduleScrollUpdate(t) {
-            if (document.hidden) return;
+            if (document.hidden || isInitialBacklog) return;
             if (scrollRafId) return;
             scrollRafId = requestAnimationFrame(() => {
                 scrollRafId = null;
+                if (isInitialBacklog) return;
                 const activeTerm = t || term || window._pelicanTerminal;
                 if (!activeTerm) return;
                 if (!isUserScrolledUp && !isConsolePaused) {
@@ -769,7 +866,9 @@
                 const curRs = activeTerm._core ? activeTerm._core._renderService : null;
                 if (curRs && typeof curRs.refreshRows === 'function') {
                     curRs._isPaused = false;
-                    curRs.refreshRows(0, (curRs._rowCount || activeTerm.rows || 24) - 1);
+                    try {
+                        curRs.refreshRows(0, (curRs._rowCount || activeTerm.rows || 24) - 1);
+                    } catch (e) {}
                 }
             });
         }
@@ -791,6 +890,12 @@
                 }
 
                 const res = origWriteln.apply(this, args);
+
+                if (isInitialBacklog) {
+                    bumpBacklogTimer();
+                    return res;
+                }
+
                 scheduleScrollUpdate(this);
                 return res;
             };
@@ -996,18 +1101,20 @@
 
     let lastCommandSent = '';
     let lastCommandTime = 0;
+    let historyNavIndex = -1;
 
     function sendCommand(cmd, shouldEcho = true) {
         if (!cmd || !cmd.trim()) return;
         cmd = cmd.trim();
 
-        // 1. Debounce rapid double-clicks (ignore duplicate clicks within 400ms)
+        // 1. Debounce rapid double-clicks (ignore duplicate clicks within 150ms)
         const now = Date.now();
-        if (cmd === lastCommandSent && (now - lastCommandTime) < 400) {
+        if (cmd === lastCommandSent && (now - lastCommandTime) < 150) {
             return;
         }
         lastCommandSent = cmd;
         lastCommandTime = now;
+        historyNavIndex = -1;
 
         // 2. Clear scrolled-up state so incoming logs stay at bottom
         isUserScrolledUp = false;
@@ -1021,18 +1128,31 @@
             syncSliderFromBuffer(term);
         }
 
-        // 3. Add to command history for autocomplete
+        // 3. Add to command history for autocomplete & history navigation
         addCommandToHistory(cmd);
 
         // 4. Clear input field if it has this command
         const input = document.getElementById('send-command');
-        if (input && input.value === cmd) {
+        if (input && (input.value === cmd || input.value.trim() === cmd)) {
             input.value = '';
             input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
         }
 
         // 5. Send EXACTLY ONCE via the official Wings WebSocket
-        const ws = window._pelicanConsoleSocket;
+        let ws = window._pelicanConsoleSocket;
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            if (window._pelicanActiveSockets && window._pelicanActiveSockets.size > 0) {
+                for (const s of window._pelicanActiveSockets) {
+                    if (s.readyState === WebSocket.OPEN) {
+                        ws = s;
+                        window._pelicanConsoleSocket = s;
+                        break;
+                    }
+                }
+            }
+        }
+
         if (ws && ws.readyState === WebSocket.OPEN) {
             try {
                 ws.send(JSON.stringify({
@@ -1531,11 +1651,14 @@
         return [...historyItems, ...standardCmds];
     }
 
+    let acUserNavigated = false;
+
     function handleAcInputEvent(e) {
         const input = e.target;
         if (!input || input.id !== 'send-command') return;
         if (!config.autocomplete) return;
 
+        acUserNavigated = false;
         const val = input.value.trim().toLowerCase();
         acOriginalTypedText = input.value;
         if (!val || val.length === 0) {
@@ -1579,36 +1702,92 @@
         const input = e.target;
         if (!input || input.id !== 'send-command') return;
         const popup = document.getElementById('pelican-ac-popup');
-        if (!popup || !popup.classList.contains('show') || acMatches.length === 0) return;
+        const isPopupOpen = popup && popup.classList.contains('show') && acMatches.length > 0;
 
-        if (e.key === 'ArrowDown') {
+        if (e.key === 'Enter') {
             e.preventDefault();
             e.stopPropagation();
-            acSelectedIndex = (acSelectedIndex + 1) % acMatches.length;
-            renderAcMatches(input);
-            // Substitute into input field live as user scrolls through suggestions
-            if (acMatches[acSelectedIndex]) {
-                input.value = acMatches[acSelectedIndex].command;
+
+            let cmdToSend = '';
+            if (isPopupOpen && acUserNavigated && acSelectedIndex >= 0 && acMatches[acSelectedIndex]) {
+                cmdToSend = acMatches[acSelectedIndex].command;
+            } else {
+                cmdToSend = input.value.trim();
             }
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            e.stopPropagation();
-            acSelectedIndex = (acSelectedIndex - 1 + acMatches.length) % acMatches.length;
-            renderAcMatches(input);
-            if (acMatches[acSelectedIndex]) {
-                input.value = acMatches[acSelectedIndex].command;
+
+            hideAcPopup();
+            acUserNavigated = false;
+            historyNavIndex = -1;
+
+            if (cmdToSend) {
+                input.value = '';
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+                sendCommand(cmdToSend, true);
             }
-        } else if (e.key === 'Tab' || (e.key === 'Enter' && acSelectedIndex >= 0)) {
-            if (acMatches[acSelectedIndex]) {
+            return;
+        }
+
+        if (e.key === 'Tab') {
+            if (isPopupOpen) {
                 e.preventDefault();
                 e.stopPropagation();
-                fillCommand(acMatches[acSelectedIndex].command);
+                const idx = (acSelectedIndex >= 0 && acSelectedIndex < acMatches.length) ? acSelectedIndex : 0;
+                if (acMatches[idx]) {
+                    fillCommand(acMatches[idx].command);
+                }
                 hideAcPopup();
+                acUserNavigated = false;
             }
-        } else if (e.key === 'Escape') {
-            e.preventDefault();
-            if (acOriginalTypedText) input.value = acOriginalTypedText;
-            hideAcPopup();
+            return;
+        }
+
+        if (e.key === 'Escape') {
+            if (isPopupOpen) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (acOriginalTypedText) input.value = acOriginalTypedText;
+                hideAcPopup();
+                acUserNavigated = false;
+            }
+            return;
+        }
+
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            if (isPopupOpen) {
+                e.preventDefault();
+                e.stopPropagation();
+                acUserNavigated = true;
+                if (e.key === 'ArrowDown') {
+                    acSelectedIndex = (acSelectedIndex + 1) % acMatches.length;
+                } else {
+                    acSelectedIndex = (acSelectedIndex - 1 + acMatches.length) % acMatches.length;
+                }
+                renderAcMatches(input);
+                if (acMatches[acSelectedIndex]) {
+                    input.value = acMatches[acSelectedIndex].command;
+                }
+                return;
+            } else {
+                // Navigate command history
+                const hist = getCommandHistory();
+                if (hist && hist.length > 0) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (e.key === 'ArrowUp') {
+                        historyNavIndex = Math.min(historyNavIndex + 1, hist.length - 1);
+                    } else {
+                        historyNavIndex = Math.max(historyNavIndex - 1, -1);
+                    }
+                    if (historyNavIndex >= 0 && historyNavIndex < hist.length) {
+                        input.value = hist[historyNavIndex];
+                    } else {
+                        input.value = '';
+                    }
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    return;
+                }
+            }
         }
     }
 
@@ -1669,7 +1848,15 @@
             class PelicanWebSocket extends origWS {
                 constructor(...args) {
                     super(...args);
-                    window._pelicanConsoleSocket = this;
+                    const url = args[0] ? String(args[0]) : '';
+                    if (url.includes('/ws') || url.includes('/api/servers/')) {
+                        window._pelicanConsoleSocket = this;
+                    }
+                    if (!window._pelicanActiveSockets) window._pelicanActiveSockets = new Set();
+                    window._pelicanActiveSockets.add(this);
+                    this.addEventListener('close', () => {
+                        if (window._pelicanActiveSockets) window._pelicanActiveSockets.delete(this);
+                    });
                     this.addEventListener('message', (e) => {
                         try {
                             const msg = JSON.parse(e.data);
@@ -1680,6 +1867,17 @@
                             }
                         } catch (err) {}
                     });
+                }
+                send(data) {
+                    try {
+                        const parsed = typeof data === 'string' ? JSON.parse(data) : null;
+                        if (parsed && parsed.event === 'send logs') {
+                            if (window._pelicanStartInitialBacklog) {
+                                window._pelicanStartInitialBacklog();
+                            }
+                        }
+                    } catch (e) {}
+                    return super.send(data);
                 }
             }
             PelicanWebSocket._pelicanProIntercepted = true;
@@ -1719,6 +1917,7 @@
         initCopyOnSelect();
         initAutocomplete();
         initInteractiveScrollbar();
+        startInitialBacklog();
         ensureTerminalAttached();
 
         const term = window._pelicanTerminal || (document.getElementById('terminal')?._xterm);

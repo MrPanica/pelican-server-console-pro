@@ -18,7 +18,7 @@ class PelicanServerConsoleProPlugin implements Plugin
 
     public function register(Panel $panel): void
     {
-        $version = '1.5.5';
+        $version = '1.5.6';
 
         if ($panel->getId() === 'server') {
             $panel->renderHook(
@@ -68,7 +68,15 @@ class PelicanServerConsoleProPlugin implements Plugin
                         '    class PelicanWebSocket extends OrigWS {' . "\n" .
                         '      constructor(...args) {' . "\n" .
                         '        super(...args);' . "\n" .
-                        '        window._pelicanConsoleSocket = this;' . "\n" .
+                        '        var url = args[0] ? String(args[0]) : "";' . "\n" .
+                        '        if (url.includes("/ws") || url.includes("/api/servers/")) {' . "\n" .
+                        '          window._pelicanConsoleSocket = this;' . "\n" .
+                        '        }' . "\n" .
+                        '        window._pelicanActiveSockets = window._pelicanActiveSockets || new Set();' . "\n" .
+                        '        window._pelicanActiveSockets.add(this);' . "\n" .
+                        '        this.addEventListener("close", function() {' . "\n" .
+                        '          if (window._pelicanActiveSockets) window._pelicanActiveSockets.delete(this);' . "\n" .
+                        '        });' . "\n" .
                         '        this.addEventListener("message", function(e) {' . "\n" .
                         '          try {' . "\n" .
                         '            var msg = JSON.parse(e.data);' . "\n" .
@@ -79,6 +87,17 @@ class PelicanServerConsoleProPlugin implements Plugin
                         '            }' . "\n" .
                         '          } catch (err) {}' . "\n" .
                         '        });' . "\n" .
+                        '      }' . "\n" .
+                        '      send(data) {' . "\n" .
+                        '        try {' . "\n" .
+                        '          var parsed = typeof data === "string" ? JSON.parse(data) : null;' . "\n" .
+                        '          if (parsed && parsed.event === "send logs") {' . "\n" .
+                        '            if (window._pelicanStartInitialBacklog) {' . "\n" .
+                        '              window._pelicanStartInitialBacklog();' . "\n" .
+                        '            }' . "\n" .
+                        '          }' . "\n" .
+                        '        } catch (e) {}' . "\n" .
+                        '        return super.send(data);' . "\n" .
                         '      }' . "\n" .
                         '    }' . "\n" .
                         '    window.WebSocket = PelicanWebSocket;' . "\n" .

@@ -638,3 +638,13 @@
     box-shadow: 0 0 10px rgba(56, 189, 248, 0.8) !important;
     cursor: grabbing !important;
 }
+
+/* Terminal Backlog Silencing */
+#terminal {
+    transition: opacity 0.15s ease-out;
+}
+#terminal.pelican-terminal-loading {
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
