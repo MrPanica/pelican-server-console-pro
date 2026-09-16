@@ -8,7 +8,7 @@
  * - Auto-Copy on Text Selection with Visual Toast
  * - Pause Engine (Ctrl key / Checkbox with lossless buffering)
  * - Autocomplete Dropdown for Source Engine Commands
- * Version 1.5.6
+ * Version 1.5.7
  */
 (function () {
     const config = window.PelicanConsoleProConfig || {
@@ -33,6 +33,17 @@
     const i18n = window.PelicanConsoleProI18n || {};
     function __(key, fallback) {
         return (i18n && typeof i18n[key] === 'string') ? i18n[key] : fallback;
+    }
+
+    function isConsolePage() {
+        return !!document.querySelector('.fi-console-page, #terminal') ||
+               window.location.pathname.endsWith('/console') ||
+               window.location.pathname.includes('/console/');
+    }
+
+    // Do not run console suite on non-console pages (like files, databases, settings)
+    if (!isConsolePage()) {
+        return;
     }
 
     function getServerIdentifier() {
@@ -1891,11 +1902,15 @@
 
         try {
             window.Livewire.hook('morph.updating', ({ el }) => {
-                if (el.id === 'terminal' || el.classList.contains('xterm') || el.closest('#terminal')) {
-                    return false;
-                }
+                if (!el || el.nodeType !== 1) return;
+                try {
+                    if (el.id === 'terminal' || (el.classList && el.classList.contains('xterm')) || (typeof el.closest === 'function' && el.closest('#terminal'))) {
+                        return false;
+                    }
+                } catch (e) {}
             });
             window.Livewire.hook('morph.updated', () => {
+                if (!isConsolePage()) return;
                 ensureTerminalAttached();
                 initInteractiveScrollbar();
                 initQuickCommands();

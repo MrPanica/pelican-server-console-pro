@@ -18,12 +18,18 @@ class PelicanServerConsoleProPlugin implements Plugin
 
     public function register(Panel $panel): void
     {
-        $version = '1.5.6';
+        $version = '1.5.7';
 
         if ($panel->getId() === 'server') {
             $panel->renderHook(
                 PanelsRenderHook::HEAD_END,
                 function () use ($version) {
+                    $req = request();
+                    $isConsole = $req->routeIs('filament.server.pages.console') || $req->is('server/*/console*');
+                    if (!$isConsole && !$req->is('livewire*')) {
+                        return '';
+                    }
+
                     $config = $this->loadConfig();
                     $i18n = trans('console-pro::messages');
                     return new HtmlString(
@@ -142,7 +148,15 @@ class PelicanServerConsoleProPlugin implements Plugin
 
             $panel->renderHook(
                 PanelsRenderHook::BODY_END,
-                fn () => new HtmlString('<script src="/plugins/pelican-server-console-pro/js/console-pro.js?v=' . $version . '&t=' . time() . '" defer></script>')
+                function () use ($version) {
+                    $req = request();
+                    $isConsole = $req->routeIs('filament.server.pages.console') || $req->is('server/*/console*');
+                    if (!$isConsole && !$req->is('livewire*')) {
+                        return '';
+                    }
+
+                    return new HtmlString('<script src="/plugins/pelican-server-console-pro/js/console-pro.js?v=' . $version . '&t=' . time() . '" defer></script>');
+                }
             );
         }
 
