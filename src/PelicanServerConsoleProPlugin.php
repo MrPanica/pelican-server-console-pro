@@ -18,7 +18,7 @@ class PelicanServerConsoleProPlugin implements Plugin
 
     public function register(Panel $panel): void
     {
-        $version = '1.5.7';
+        $version = '1.5.8';
 
         if ($panel->getId() === 'server') {
             $panel->renderHook(
@@ -32,6 +32,9 @@ class PelicanServerConsoleProPlugin implements Plugin
 
                     $config = $this->loadConfig();
                     $i18n = trans('console-pro::messages');
+                    $wsFile = __DIR__ . '/../resources/js/console-pro-ws.js';
+                    $wsCode = file_exists($wsFile) ? file_get_contents($wsFile) : '';
+
                     return new HtmlString(
                         '<link rel="stylesheet" href="/plugins/pelican-server-console-pro/css/console-pro.css?v=' . $version . '&t=' . time() . '">' . "\n" .
                         '<script>' . "\n" .
@@ -68,46 +71,7 @@ class PelicanServerConsoleProPlugin implements Plugin
                         '      }' . "\n" .
                         '    }' . "\n" .
                         '  });' . "\n" .
-                        '  var OrigWS = window.WebSocket;' . "\n" .
-                        '  if (OrigWS && !OrigWS._proHooked) {' . "\n" .
-                        '    OrigWS._proHooked = true;' . "\n" .
-                        '    class PelicanWebSocket extends OrigWS {' . "\n" .
-                        '      constructor(...args) {' . "\n" .
-                        '        super(...args);' . "\n" .
-                        '        var url = args[0] ? String(args[0]) : "";' . "\n" .
-                        '        if (url.includes("/ws") || url.includes("/api/servers/")) {' . "\n" .
-                        '          window._pelicanConsoleSocket = this;' . "\n" .
-                        '        }' . "\n" .
-                        '        window._pelicanActiveSockets = window._pelicanActiveSockets || new Set();' . "\n" .
-                        '        window._pelicanActiveSockets.add(this);' . "\n" .
-                        '        this.addEventListener("close", function() {' . "\n" .
-                        '          if (window._pelicanActiveSockets) window._pelicanActiveSockets.delete(this);' . "\n" .
-                        '        });' . "\n" .
-                        '        this.addEventListener("message", function(e) {' . "\n" .
-                        '          try {' . "\n" .
-                        '            var msg = JSON.parse(e.data);' . "\n" .
-                        '            if (msg && msg.event === "stats" && msg.args && msg.args[0]) {' . "\n" .
-                        '              var raw = msg.args[0];' . "\n" .
-                        '              var statsObj = typeof raw === "string" ? JSON.parse(raw) : raw;' . "\n" .
-                        '              window.dispatchEvent(new CustomEvent("pelican:server-stats", { detail: statsObj }));' . "\n" .
-                        '            }' . "\n" .
-                        '          } catch (err) {}' . "\n" .
-                        '        });' . "\n" .
-                        '      }' . "\n" .
-                        '      send(data) {' . "\n" .
-                        '        try {' . "\n" .
-                        '          var parsed = typeof data === "string" ? JSON.parse(data) : null;' . "\n" .
-                        '          if (parsed && parsed.event === "send logs") {' . "\n" .
-                        '            if (window._pelicanStartInitialBacklog) {' . "\n" .
-                        '              window._pelicanStartInitialBacklog();' . "\n" .
-                        '            }' . "\n" .
-                        '          }' . "\n" .
-                        '        } catch (e) {}' . "\n" .
-                        '        return super.send(data);' . "\n" .
-                        '      }' . "\n" .
-                        '    }' . "\n" .
-                        '    window.WebSocket = PelicanWebSocket;' . "\n" .
-                        '  }' . "\n" .
+                        $wsCode . "\n" .
                         '  var _xt = undefined;' . "\n" .
                         '  function patchXtermObj(val) {' . "\n" .
                         '    if (!val) return;' . "\n" .

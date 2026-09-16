@@ -1852,48 +1852,29 @@
         }
     }
 
-    // --- 11. WEBSOCKET TELEMETRY BRIDGE ---
+    // --- 11. WEBSOCKET TELEMETRY BRIDGE & BFCACHE/WAKE-UP RECOVERY ---
+    // Resilient PelicanWebSocket is installed early in HEAD_END via console-pro-ws.js.
+    // Here we register window/tab wake-up and terminal refresh hooks.
     try {
-        const origWS = window.WebSocket;
-        if (origWS && !origWS._pelicanProIntercepted) {
-            class PelicanWebSocket extends origWS {
-                constructor(...args) {
-                    super(...args);
-                    const url = args[0] ? String(args[0]) : '';
-                    if (url.includes('/ws') || url.includes('/api/servers/')) {
-                        window._pelicanConsoleSocket = this;
+        window.addEventListener('pageshow', (event) => {
+            setTimeout(() => {
+                if (window._pelicanTerminal && typeof window._pelicanTerminal.refreshRows === 'function') {
+                    window._pelicanTerminal.refreshRows(0, (window._pelicanTerminal.rows || 24) - 1);
+                }
+                ensureTerminalAttached();
+            }, 100);
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                setTimeout(() => {
+                    if (window._pelicanTerminal && typeof window._pelicanTerminal.refreshRows === 'function') {
+                        window._pelicanTerminal.refreshRows(0, (window._pelicanTerminal.rows || 24) - 1);
                     }
-                    if (!window._pelicanActiveSockets) window._pelicanActiveSockets = new Set();
-                    window._pelicanActiveSockets.add(this);
-                    this.addEventListener('close', () => {
-                        if (window._pelicanActiveSockets) window._pelicanActiveSockets.delete(this);
-                    });
-                    this.addEventListener('message', (e) => {
-                        try {
-                            const msg = JSON.parse(e.data);
-                            if (msg && msg.event === 'stats' && msg.args && msg.args[0]) {
-                                const raw = msg.args[0];
-                                const statsObj = typeof raw === 'string' ? JSON.parse(raw) : raw;
-                                window.dispatchEvent(new CustomEvent('pelican:server-stats', { detail: statsObj }));
-                            }
-                        } catch (err) {}
-                    });
-                }
-                send(data) {
-                    try {
-                        const parsed = typeof data === 'string' ? JSON.parse(data) : null;
-                        if (parsed && parsed.event === 'send logs') {
-                            if (window._pelicanStartInitialBacklog) {
-                                window._pelicanStartInitialBacklog();
-                            }
-                        }
-                    } catch (e) {}
-                    return super.send(data);
-                }
+                    ensureTerminalAttached();
+                }, 100);
             }
-            PelicanWebSocket._pelicanProIntercepted = true;
-            window.WebSocket = PelicanWebSocket;
-        }
+        });
     } catch (e) {}
 
     function attachLivewireSafety() {
