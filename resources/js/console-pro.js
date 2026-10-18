@@ -220,6 +220,7 @@
             // Dropdown menus, modal dialogs, select boxes, inputs, buttons, header overlays
             if (target.closest(
                 '.push-server-dropdown-menu, ' +
+                '.push-server-select-wrap, ' +
                 '.push-dropdown-scrollable, ' +
                 '.push-modal-backdrop, ' +
                 '.push-modal-window, ' +
@@ -246,6 +247,7 @@
             if (topEl) {
                 if (topEl.closest(
                     '.push-server-dropdown-menu, ' +
+                    '.push-server-select-wrap, ' +
                     '.push-dropdown-scrollable, ' +
                     '.push-modal-backdrop, ' +
                     '.push-modal-window, ' +
@@ -1150,7 +1152,24 @@
             input.dispatchEvent(new Event('change', { bubbles: true }));
         }
 
-        // 5. Send EXACTLY ONCE via the official Wings WebSocket
+        // 5. Dispatch command via Livewire (Pelican's official command pipeline with token & queue)
+        if (window.Livewire) {
+            try {
+                const inputEl = document.getElementById('send-command');
+                const wireEl = inputEl ? inputEl.closest('[wire\\:id]') : null;
+                if (wireEl && typeof window.Livewire.find === 'function') {
+                    const comp = window.Livewire.find(wireEl.getAttribute('wire:id'));
+                    if (comp && typeof comp.dispatch === 'function') {
+                        comp.dispatch('sendServerCommand', { command: cmd });
+                    }
+                }
+                if (typeof window.Livewire.dispatch === 'function') {
+                    window.Livewire.dispatch('sendServerCommand', { command: cmd });
+                }
+            } catch (e) {}
+        }
+
+        // 6. Also direct send to WebSocket if active and authenticated
         let ws = window._pelicanConsoleSocket;
         if (!ws || ws.readyState !== WebSocket.OPEN) {
             if (window._pelicanActiveSockets && window._pelicanActiveSockets.size > 0) {
@@ -1170,17 +1189,9 @@
                     event: 'send command',
                     args: [cmd]
                 }));
-                return; // SENT! Stop execution, DO NOT call Livewire or dispatch enter events!
             } catch (err) {
                 console.warn('Pelican Console Pro: Direct WS send error:', err);
             }
-        }
-
-        // 6. Fallback ONLY if WebSocket is not open
-        if (window.Livewire) {
-            try {
-                window.Livewire.dispatch('sendServerCommand', { command: cmd });
-            } catch (e) {}
         }
     }
 
@@ -1716,25 +1727,34 @@
         const isPopupOpen = popup && popup.classList.contains('show') && acMatches.length > 0;
 
         if (e.key === 'Enter') {
-            e.preventDefault();
-            e.stopPropagation();
-
-            let cmdToSend = '';
+            // ONLY intercept Enter if the autocomplete popup was actively navigated with arrow keys!
             if (isPopupOpen && acUserNavigated && acSelectedIndex >= 0 && acMatches[acSelectedIndex]) {
-                cmdToSend = acMatches[acSelectedIndex].command;
-            } else {
-                cmdToSend = input.value.trim();
+                e.preventDefault();
+                e.stopPropagation();
+
+                const cmdToSend = acMatches[acSelectedIndex].command;
+                hideAcPopup();
+                acUserNavigated = false;
+                historyNavIndex = -1;
+
+                if (cmdToSend) {
+                    input.value = cmdToSend;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                    sendCommand(cmdToSend, true);
+                }
+                return;
             }
 
+            // Normal typing: close popup, save to history, but DO NOT stop propagation or prevent default!
+            // This allows Livewire's native wire:keydown.enter="enter" to process the command officially!
             hideAcPopup();
             acUserNavigated = false;
             historyNavIndex = -1;
 
-            if (cmdToSend) {
-                input.value = '';
-                input.dispatchEvent(new Event('input', { bubbles: true }));
-                input.dispatchEvent(new Event('change', { bubbles: true }));
-                sendCommand(cmdToSend, true);
+            const typedCmd = input.value.trim();
+            if (typedCmd) {
+                addCommandToHistory(typedCmd);
             }
             return;
         }

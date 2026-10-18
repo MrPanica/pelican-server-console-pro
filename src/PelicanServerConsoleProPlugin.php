@@ -18,7 +18,7 @@ class PelicanServerConsoleProPlugin implements Plugin
 
     public function register(Panel $panel): void
     {
-        $version = '1.5.8';
+        $version = '1.5.9';
 
         if ($panel->getId() === 'server') {
             $panel->renderHook(
