@@ -1120,9 +1120,9 @@
         if (!cmd || !cmd.trim()) return;
         cmd = cmd.trim();
 
-        // 1. Debounce rapid double-clicks (ignore duplicate clicks within 150ms)
+        // 1. Debounce rapid double-clicks (ignore duplicate clicks within 600ms)
         const now = Date.now();
-        if (cmd === lastCommandSent && (now - lastCommandTime) < 150) {
+        if (cmd === lastCommandSent && (now - lastCommandTime) < 600) {
             return;
         }
         lastCommandSent = cmd;
@@ -1152,24 +1152,10 @@
             input.dispatchEvent(new Event('change', { bubbles: true }));
         }
 
-        // 5. Dispatch command via Livewire (Pelican's official command pipeline with token & queue)
-        if (window.Livewire) {
-            try {
-                const inputEl = document.getElementById('send-command');
-                const wireEl = inputEl ? inputEl.closest('[wire\\:id]') : null;
-                if (wireEl && typeof window.Livewire.find === 'function') {
-                    const comp = window.Livewire.find(wireEl.getAttribute('wire:id'));
-                    if (comp && typeof comp.dispatch === 'function') {
-                        comp.dispatch('sendServerCommand', { command: cmd });
-                    }
-                }
-                if (typeof window.Livewire.dispatch === 'function') {
-                    window.Livewire.dispatch('sendServerCommand', { command: cmd });
-                }
-            } catch (e) {}
-        }
+        // 5. Send command: STRICTLY SINGLE DISPATCH (prevents duplicate execution)
+        let sent = false;
 
-        // 6. Also direct send to WebSocket if active and authenticated
+        // A. Direct WebSocket send (immediate, native Wings protocol, lowest latency)
         let ws = window._pelicanConsoleSocket;
         if (!ws || ws.readyState !== WebSocket.OPEN) {
             if (window._pelicanActiveSockets && window._pelicanActiveSockets.size > 0) {
@@ -1189,8 +1175,19 @@
                     event: 'send command',
                     args: [cmd]
                 }));
+                sent = true;
             } catch (err) {
                 console.warn('Pelican Console Pro: Direct WS send error:', err);
+            }
+        }
+
+        // B. Fallback to Livewire dispatch ONLY IF WebSocket send was NOT possible
+        if (!sent && window.Livewire && typeof window.Livewire.dispatch === 'function') {
+            try {
+                window.Livewire.dispatch('sendServerCommand', { command: cmd });
+                sent = true;
+            } catch (e) {
+                console.warn('Pelican Console Pro: Livewire fallback dispatch error:', e);
             }
         }
     }
@@ -1339,72 +1336,76 @@
         getPauseState: () => ({ isManualPaused, isConsolePaused, isCtrlHeld })
     };
 
-    document.addEventListener('change', (e) => {
-        if (e.target && e.target.id === 'pelican-pause-cb') {
-            isManualPaused = !!e.target.checked;
-            setConsolePaused(isManualPaused || isCtrlHeld);
-        }
-    }, true);
+    if (!window._pelicanConsoleProDocListenersHooked) {
+        window._pelicanConsoleProDocListenersHooked = true;
 
-    document.addEventListener('click', (e) => {
-        const pauseBtn = e.target.closest('#pelican-pause-btn, .pelican-pause-btn');
-        if (pauseBtn) {
-            e.preventDefault();
-            e.stopPropagation();
-            toggleManualPause();
-            return;
-        }
-
-        if (e.target && e.target.id === 'pelican-pause-cb') {
-            setTimeout(() => {
+        document.addEventListener('change', (e) => {
+            if (e.target && e.target.id === 'pelican-pause-cb') {
                 isManualPaused = !!e.target.checked;
                 setConsolePaused(isManualPaused || isCtrlHeld);
-            }, 0);
-            return;
-        }
-
-        const pauseToggle = e.target.closest('.pelican-qc-pause-toggle');
-        if (pauseToggle && !e.target.closest('#pelican-pause-cb')) {
-            const cb = pauseToggle.querySelector('#pelican-pause-cb');
-            if (cb) {
-                cb.checked = !cb.checked;
-                isManualPaused = cb.checked;
-                setConsolePaused(isManualPaused || isCtrlHeld);
             }
-            return;
-        }
+        }, true);
 
-        const btn = e.target.closest('.pelican-qc-btn');
-        if (btn) {
-            if (btn.classList.contains('pelican-qc-btn-add')) {
+        document.addEventListener('click', (e) => {
+            const pauseBtn = e.target.closest('#pelican-pause-btn, .pelican-pause-btn');
+            if (pauseBtn) {
                 e.preventDefault();
                 e.stopPropagation();
-                openCustomCommandsModal();
+                toggleManualPause();
                 return;
             }
 
-            if (btn.classList.contains('pelican-pause-btn') || btn.closest('.pelican-qc-pause-toggle')) {
+            if (e.target && e.target.id === 'pelican-pause-cb') {
+                setTimeout(() => {
+                    isManualPaused = !!e.target.checked;
+                    setConsolePaused(isManualPaused || isCtrlHeld);
+                }, 0);
                 return;
             }
 
-            e.preventDefault();
-            e.stopPropagation();
-
-            if (btn._sending) return;
-            btn._sending = true;
-            btn.classList.add('active-pulse');
-            setTimeout(() => {
-                btn.classList.remove('active-pulse');
-                btn._sending = false;
-            }, 400);
-
-            const cmd = btn.getAttribute('data-command') || btn.textContent.trim();
-            if (cmd) {
-                sendCommand(cmd, true);
+            const pauseToggle = e.target.closest('.pelican-qc-pause-toggle');
+            if (pauseToggle && !e.target.closest('#pelican-pause-cb')) {
+                const cb = pauseToggle.querySelector('#pelican-pause-cb');
+                if (cb) {
+                    cb.checked = !cb.checked;
+                    isManualPaused = cb.checked;
+                    setConsolePaused(isManualPaused || isCtrlHeld);
+                }
+                return;
             }
-            return;
-        }
-    });
+
+            const btn = e.target.closest('.pelican-qc-btn');
+            if (btn) {
+                if (btn.classList.contains('pelican-qc-btn-add')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openCustomCommandsModal();
+                    return;
+                }
+
+                if (btn.classList.contains('pelican-pause-btn') || btn.closest('.pelican-qc-pause-toggle')) {
+                    return;
+                }
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (btn._sending) return;
+                btn._sending = true;
+                btn.classList.add('active-pulse');
+                setTimeout(() => {
+                    btn.classList.remove('active-pulse');
+                    btn._sending = false;
+                }, 600);
+
+                const cmd = btn.getAttribute('data-command') || btn.textContent.trim();
+                if (cmd) {
+                    sendCommand(cmd, true);
+                }
+                return;
+            }
+        });
+    }
 
     function renderCustomListInModal() {
         const ctn = document.getElementById('pelican-qc-custom-items');
