@@ -1,6 +1,39 @@
 /* Pelican Server Console Pro Styles */
 
-/* 1. Quick Commands Toolbar */
+/* 1. Quick Commands Toolbar & Command Input Container */
+.pelican-command-input-container,
+div:has(> #send-command) {
+    flex: 0 0 42px !important;
+    min-height: 42px !important;
+    max-height: 42px !important;
+    height: 42px !important;
+    display: flex !important;
+    align-items: center !important;
+    background: #0f172a !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 0 !important;
+    padding: 0 10px !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+    z-index: 10 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+#send-command {
+    height: 32px !important;
+    line-height: 32px !important;
+    color: #f8fafc !important;
+    background: transparent !important;
+    font-size: 13px !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+    display: block !important;
+    width: 100% !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
 #pelican-quick-commands-slot {
     width: 100%;
 }
@@ -18,7 +51,8 @@
     border-top: none;
     border-bottom-left-radius: 8px;
     border-bottom-right-radius: 8px;
-    margin-bottom: 12px;
+    margin-bottom: 0 !important;
+    flex: 0 0 auto !important;
 }
 
 .pelican-qc-buttons {

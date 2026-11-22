@@ -1,7 +1,7 @@
 {
     "*": {
-        "version": "1.5.10",
+        "version": "1.5.11",
         "download_url": "https://github.com/MrPanica/pelican-server-console-pro/archive/refs/heads/master.zip",
-        "changelog": "Fix duplicate command dispatch on quick buttons and rapid clicks: enforced strict single dispatch via WebSocket and increased debounce protection."
+        "changelog": "Ensure rock-solid command input visibility and seamless layout integration with Pelican and Layout Pro."
     }
 }

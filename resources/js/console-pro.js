@@ -1488,9 +1488,14 @@
         if (!config.quick_commands) return;
         if (document.getElementById('pelican-quick-commands-bar')) return;
 
-        const inputContainer = document.querySelector('div:has(> #send-command)');
+        const input = document.getElementById('send-command');
+        const inputContainer = input ? (input.closest('div') || input.parentElement) : document.querySelector('div:has(> #send-command)');
         const slot = document.getElementById('pelican-quick-commands-slot');
         if (!inputContainer && !slot) return;
+
+        if (inputContainer) {
+            inputContainer.classList.add('pelican-command-input-container');
+        }
 
         const bar = document.createElement('div');
         bar.id = 'pelican-quick-commands-bar';
