@@ -584,8 +584,23 @@
     }
 
     function toggleManualPause() {
-        isManualPaused = !isManualPaused;
-        setConsolePaused(isManualPaused || isCtrlHeld);
+        if (isConsolePaused) {
+            isManualPaused = false;
+            isCtrlHeld = false;
+            setConsolePaused(false);
+        } else {
+            isManualPaused = true;
+            setConsolePaused(true);
+        }
+    }
+
+    function checkCtrlState(e) {
+        if (isCtrlHeld && (!e || !e.ctrlKey)) {
+            isCtrlHeld = false;
+            if (!isManualPaused) {
+                setConsolePaused(false);
+            }
+        }
     }
 
     function handleCtrlDown(e) {
@@ -619,30 +634,22 @@
             window.addEventListener('keyup', handleCtrlUp, { capture: true, passive: true });
             document.addEventListener('keyup', handleCtrlUp, { capture: true, passive: true });
 
-            window.addEventListener('mousemove', (e) => {
-                if (isCtrlHeld && !e.ctrlKey) {
-                    isCtrlHeld = false;
-                    if (!isManualPaused) {
-                        setConsolePaused(false);
-                    }
-                }
-            }, { passive: true });
+            window.addEventListener('mousemove', checkCtrlState, { passive: true });
+            window.addEventListener('mousedown', checkCtrlState, { passive: true });
+            window.addEventListener('pointerdown', checkCtrlState, { passive: true });
+            document.addEventListener('click', checkCtrlState, { passive: true });
 
             window.addEventListener('blur', () => {
-                if (isCtrlHeld) {
-                    isCtrlHeld = false;
-                    if (!isManualPaused) {
-                        setConsolePaused(false);
-                    }
+                isCtrlHeld = false;
+                if (!isManualPaused) {
+                    setConsolePaused(false);
                 }
             });
 
             window.addEventListener('focus', () => {
-                if (isCtrlHeld) {
-                    isCtrlHeld = false;
-                    if (!isManualPaused) {
-                        setConsolePaused(false);
-                    }
+                isCtrlHeld = false;
+                if (!isManualPaused) {
+                    setConsolePaused(false);
                 }
             });
 
